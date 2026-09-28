@@ -1331,7 +1331,7 @@ document.getElementById("scrim").addEventListener("click",()=>openSettings(false
   document.addEventListener("keydown",e=>{ if(e.key==="Escape") ov.hidden=true; });
 })();
 // ---------- disclaimer: accepted once per build (BUILD_ID changes with every shipped update) ----------
-const BUILD_ID="2026-09-28-4d94151d";
+const BUILD_ID="2026-09-29-4d94151d";
 const DISC_KEY="1w.disclaimer.accepted";
 function showDisclaimer(force){
   const ov=document.getElementById("disclaimer"); if(!ov) return;
@@ -1837,15 +1837,52 @@ function tLat(y,z){ return Math.atan(Math.sinh(Math.PI*(1-2*y/Math.pow(2,z))))/D
 function rasterZoom(){ return Math.max(1,Math.min(4, 2+Math.round(Math.log2(zoom)))); }
 function tileURL(layer,z,x,y){ const s=rasterSrc(); if(!s) return null;
   return s.url.replace("{layer}",OWM_LAYER[layer]).replace("{z}",z).replace("{x}",x).replace("{y}",y)+"?appid="+encodeURIComponent(owmKey()); }
+// OWM's cloud tile is white-by-opacity and its precipitation tile a faint blue — levels barely read.
+// Recolour those two through a vivid ramp at load time (once per tile, cached in e.rc) so density /
+// rate steps are distinct. Temp + wind keep OWM's own colourful palette. Needs CORS to read pixels;
+// if the tile can't be read (no CORS / offline), we fall back to the plain tile — never worse.
+const RECOLOR={cloud:1, precip:1};
+const RC_RAMP={
+  cloud: [[0,200,230,190],[0.15,255,255,255],[0.35,130,215,235],[0.55,60,150,225],[0.78,65,80,185],[1,40,40,110]],
+  precip:[[0,130,210,255],[0.2,45,145,240],[0.42,45,200,120],[0.62,235,220,60],[0.8,240,140,45],[1,225,40,45]]
+};
+function rcSample(ramp,t){ t=t<0?0:t>1?1:t;
+  for(let i=1;i<ramp.length;i++){ if(t<=ramp[i][0]){ const a=ramp[i-1],b=ramp[i],f=(t-a[0])/((b[0]-a[0])||1);
+    return [a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f, a[3]+(b[3]-a[3])*f]; } }
+  const l=ramp[ramp.length-1]; return [l[1],l[2],l[3]];
+}
+function recolorTile(img,layer){
+  const c=document.createElement("canvas"); c.width=c.height=256;
+  const g=c.getContext("2d",{willReadFrequently:true}); if(!g) return null;
+  g.drawImage(img,0,0,256,256);
+  const id=g.getImageData(0,0,256,256), d=id.data, ramp=RC_RAMP[layer];   // throws if the tile tainted the canvas (no CORS)
+  for(let i=0;i<d.length;i+=4){
+    const a=d[i+3]; if(a<8){ d[i+3]=0; continue; }
+    let inten, aout;
+    if(layer==="cloud"){ inten=a/255; aout=Math.pow(inten,0.8)*0.92; }   // clouds: opacity IS the coverage signal
+    else { const L=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])/255, cov=a/255; // precip: heavier = more opaque + darker/bluer
+           inten=Math.min(1, cov*0.5 + (1-L)*0.7*cov + 0.12); aout=0.35+inten*0.6; }
+    const col=rcSample(ramp,inten);
+    d[i]=col[0]|0; d[i+1]=col[1]|0; d[i+2]=col[2]|0; d[i+3]=Math.round((aout<0?0:aout>1?1:aout)*255);
+  }
+  g.putImageData(id,0,0); return c;
+}
+function loadTileImg(e,layer,z,x,y,cors){
+  const img=new Image();
+  if(cors) try{ img.crossOrigin="anonymous"; }catch(_e){}
+  img.onload=()=>{ e.ok=true; rasterLoaded++;                 // a real tile arrived → say so, once
+    if(RECOLOR[layer]){ try{ const rc=recolorTile(img,layer); if(rc) e.rc=rc; }catch(_e){ e.rc=null; } }
+    const at=document.getElementById("owm-attrib"); if(at)at.hidden=false; setLayerMsg("© OpenWeatherMap · live");
+    requestAnimationFrame(render); };
+  img.onerror=()=>{ if(cors){ e.rc=null; loadTileImg(e,layer,z,x,y,false); return; }   // retry once without CORS (plain tile, no recolour)
+    e.fail=true; rasterErr++; };                              // 401 / offline / blocked → stays !ok; probe explains why
+  img.src=tileURL(layer,z,x,y); e.img=img;
+}
 function getTile(layer,z,x,y){
   const n=Math.pow(2,z), wx=((x%n)+n)%n, kk=layer+"/"+z+"/"+wx+"/"+y;
   let e=tileCache.get(kk); if(e) return e;
-  e={img:new Image(),ok:false,fail:false}; tileCache.set(kk,e);
-  e.img.onload=()=>{ e.ok=true; rasterLoaded++;                 // a real tile arrived → say so, once
-    const at=document.getElementById("owm-attrib"); if(at)at.hidden=false; setLayerMsg("© OpenWeatherMap · live");
-    requestAnimationFrame(render); };
-  e.img.onerror=()=>{ e.fail=true; rasterErr++; };   // 401 / offline / blocked → stays !ok; probe explains why
-  e.img.src=tileURL(layer,z,wx,y); return e;
+  e={img:null,rc:null,ok:false,fail:false}; tileCache.set(kk,e);
+  loadTileImg(e,layer,z,wx,y, !!RECOLOR[layer]); return e;
 }
 function onScreen(lon,lat){ let pr; if(mode==="ee"){pr=eqEarth(lon,lat);} else {pr=globe(lon,lat); if(!pr.front) return null;}
   const s=toScreen(pr); return (s.sx>=-48&&s.sx<=W+48&&s.sy>=-48&&s.sy<=H+48)?s:null; }
@@ -1872,6 +1909,7 @@ function drawRaster(){
       let vis=false; for(const t of test){ if(onScreen(t[0],t[1])){ vis=true; break; } }
       if(!vis) continue;
       const e=getTile(rasterLayer,z,tx,ty); if(!e.ok) continue;
+      const src=e.rc||e.img;                            // recoloured cloud/precip tile when available, else the plain one
       for(let j=0;j<N;j++){ for(let i=0;i<N;i++){
         const A=[tLon(tx+i/N,z),tLat(ty+j/N,z)],     B=[tLon(tx+(i+1)/N,z),tLat(ty+j/N,z)],
               C=[tLon(tx+(i+1)/N,z),tLat(ty+(j+1)/N,z)], D=[tLon(tx+i/N,z),tLat(ty+(j+1)/N,z)];
@@ -2012,11 +2050,11 @@ const FIELD = {
   precip: { get:p=>p.p,  lo:0, hi:12, unit:"mm", label:"Precipitation", warpAlpha:0.82,
             stops:[[0,185,228,255],[0.5,120,198,250],[1.5,70,150,245],[3,55,110,235],[5,95,70,215],[8,130,45,195],[12,160,25,170]],
             alphaOf:v=> v<=0.02?0: Math.min(235, 90+v*40),   // light rain clearly visible (keyless fallback)
-            owm:{lo:0,hi:10,stops:[[0,225,240,255],[1,140,190,255],[2,90,120,245],[4,120,70,210],[10,150,40,170]]} },
+            owm:{lo:0,hi:10,stops:[[0,130,210,255],[2,45,145,240],[4,45,200,120],[6,235,220,60],[8,240,140,45],[10,225,40,45]]} },
   cloud:  { get:p=>p.c,  lo:0, hi:100, unit:"%", label:"Cloud cover", warpAlpha:0.85,
             stops:[[0,240,244,250],[60,222,228,238],[100,200,208,220]],
             alphaOf:v=> v<=8?0: Math.min(165, v*1.7),       // translucent veil, not solid blobs
-            owm:{lo:0,hi:100,stops:[[0,255,255,255],[50,232,235,240],[100,200,205,215]]} },
+            owm:{lo:0,hi:100,stops:[[0,200,230,190],[15,255,255,255],[35,130,215,235],[55,60,150,225],[78,65,80,185],[100,40,40,110]]} },
   wind:   { get:p=>p.ws, lo:0, hi:120, unit:"km/h", label:"Wind speed", warpAlpha:0.6,
             stops:[[0,60,180,120],[15,120,200,90],[30,235,216,92],[50,240,150,52],[75,226,72,52],[120,150,25,85]],
             owm:{lo:0,hi:100,stops:[[0,245,245,245],[5,238,206,204],[15,179,100,188],[25,110,70,110],[50,116,76,172],[100,70,0,175]]} },
