@@ -167,9 +167,20 @@
   .lp-search{margin:8px 0 4px}
   .lp-search input{width:100%;font:15px/1.3 -apple-system,system-ui,sans-serif;padding:10px 12px;border:1px solid var(--line);
     border-radius:10px;background:var(--paper);color:var(--ink)}
-  .lp-list{margin-top:6px;max-height:52vh;overflow:auto;-webkit-overflow-scrolling:touch}
-  .lp-reg{position:sticky;top:0;background:var(--void-2,#070810);font:700 10.5px/1 -apple-system,system-ui,sans-serif;
-    letter-spacing:.10em;text-transform:uppercase;color:var(--accent);padding:9px 4px 5px;z-index:1}
+  .lp-list{margin-top:6px;max-height:56vh;overflow:auto;-webkit-overflow-scrolling:touch}
+  /* collapsible region rows (accordion): tap a region to reveal its languages */
+  .lp-greg{border-top:1px solid var(--line)}
+  .lp-greg:first-child{border-top:0}
+  summary.lp-reg{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+    padding:12px 4px;font:700 11px/1 -apple-system,system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
+  summary.lp-reg::-webkit-details-marker{display:none}
+  summary.lp-reg::before{content:"›";font-size:17px;line-height:1;color:#8a919c;transform:rotate(90deg);transition:transform .18s;width:12px;text-align:center;flex:0 0 auto}
+  .lp-greg[open]>summary.lp-reg::before{transform:rotate(-90deg)}
+  .lp-greg[open]>summary.lp-reg{color:var(--ink)}
+  summary.lp-reg .lp-rn{flex:1 1 auto}
+  summary.lp-reg .lp-count{flex:0 0 auto;font:600 10px/1 -apple-system,system-ui,sans-serif;letter-spacing:.02em;
+    color:var(--muted);background:rgba(127,160,200,.14);border-radius:9px;padding:3px 7px}
+  .lp-greg>.lp-lang{padding-left:22px}
   .lp-lang{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;border-radius:9px;
     background:transparent;color:var(--ink);font:600 15px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
     padding:11px 10px;cursor:pointer}
@@ -1358,15 +1369,18 @@ document.getElementById("langpick").addEventListener("click",e=>{ const b=e.targ
   document.getElementById("langpick").hidden=true;
   selectLang(b.dataset.lang, ok=>{ showDisclaimer(true); });   // the disclaimer follows in the chosen language (English if the pack failed)
 });
-// first-run picker: live filter by endonym or code
+// first-run picker: live filter by endonym or code. A query opens the regions that match and hides
+// the rest; clearing it restores the accordion (only the current language's region open).
 (function(){ const f=document.getElementById("langpick-filter"); if(!f) return;
   f.addEventListener("input",()=>{ const q=f.value.trim().toLowerCase();
-    document.querySelectorAll("#langpick-list .lp-lang").forEach(b=>{
-      const hit=!q || b.dataset.lang.toLowerCase().includes(q) || (b.textContent||"").toLowerCase().includes(q);
-      b.style.display=hit?"":"none"; });
-    document.querySelectorAll("#langpick-list .lp-reg").forEach(r=>{ let n=r.nextElementSibling,any=false;
-      while(n && n.classList.contains("lp-lang")){ if(n.style.display!=="none") any=true; n=n.nextElementSibling; }
-      r.style.display=any?"":"none"; });
+    document.querySelectorAll("#langpick-list .lp-greg").forEach(g=>{
+      let any=false;
+      g.querySelectorAll(".lp-lang").forEach(b=>{
+        const hit=!q || b.dataset.lang.toLowerCase().includes(q) || (b.textContent||"").toLowerCase().includes(q);
+        b.style.display=hit?"":"none"; if(hit) any=true; });
+      g.style.display=any?"":"none";
+      if(q) g.open=any; else g.open=(g.dataset.region===((LANG_META[uiLang]&&LANG_META[uiLang].region)||""));
+    });
   });
 })();
 document.getElementById("tp-out").addEventListener("click",()=>{ zoomAt(cx,cy,Math.max(1,zoom/1.5)); requestAnimationFrame(render); });
@@ -2345,15 +2359,22 @@ function renderLangGroups(container){
   const byReg={}; for(const c of UI_LANGS){ const r=(LANG_META[c]&&LANG_META[c].region)||"Other"; (byReg[r]=byReg[r]||[]).push(c); }
   const regions=[...LANG_REGION_ORDER.filter(r=>byReg[r]), ...Object.keys(byReg).filter(r=>!LANG_REGION_ORDER.includes(r))];
   const esc=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+  const curReg=(LANG_META[uiLang]&&LANG_META[uiLang].region)||"";
+  // Each region is a COLLAPSIBLE row (accordion) so no one region — Europe has 39 — floods the panel.
+  // The region holding the current language opens; the rest start collapsed. (Search expands matches.)
   let h="";
   for(const r of regions){
     const codes=byReg[r].sort((a,b)=>a==="en"?-1:b==="en"?1:langEndonym(a).localeCompare(langEndonym(b)));
-    h+='<div class="lp-reg">'+esc(T("region_"+r.toLowerCase().replace(/[^a-z]+/g,"_"),r))+'</div>';
+    const open=(r===curReg)?" open":"";
+    h+='<details class="lp-greg"'+open+' data-region="'+esc(r)+'"><summary class="lp-reg">'
+      +'<span class="lp-rn">'+esc(T("region_"+r.toLowerCase().replace(/[^a-z]+/g,"_"),r))+'</span>'
+      +'<span class="lp-count">'+codes.length+'</span></summary>';
     for(const c of codes){
       h+='<button class="lp-lang'+(c===uiLang?' on':'')+'" data-lang="'+c+'"'+(langIsRtl(c)?' dir="rtl"':'')+'>'
         +'<span class="lp-nm">'+esc(langEndonym(c))+'</span>'
         +(langIsBeta(c)?'<span class="lp-beta">BETA</span>':'')+'</button>';
     }
+    h+='</details>';
   }
   container.innerHTML=h;
 }
