@@ -59,8 +59,12 @@ workflows:
               except FileNotFoundError: bad.append(f"{rel}: MISSING"); continue
               if got != want["sha256"]: bad.append(f"{rel}: sha {got[:16]} != manifest {want['sha256'][:16]} — from a DIFFERENT ship run")
           langs = json.load(open("www/lang-manifest.json"))["langs"]
+          gm = json.load(open("www/lang-groups.json")); pfx = gm.get("packPrefix", "langgroup-")
+          grp = {c: (pfx + gid).replace('-', '_') for gid, g in gm["groups"].items() for c in g.get("langs", [])}
           for code, meta in langs.items():
-              p = f"lang_{code.replace('-', '_')}/src/main/assets/lang-{code}.json"
+              pack = grp.get(code)
+              if not pack: bad.append(f"{code}: no group in lang-groups.json"); continue
+              p = f"{pack}/src/main/assets/lang-{code}.json"
               if not os.path.isfile(p): bad.append(f"{p}: MISSING (manifest names it)"); continue
               if hashlib.sha256(open(p, "rb").read()).hexdigest() != meta["sha256"]: bad.append(f"{p}: digest mismatch")
           if bad:

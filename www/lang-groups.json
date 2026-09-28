@@ -1,0 +1,290 @@
+{
+ "what": "THE ANDROID LANGUAGE-GROUP MAP (Session 41, 30 Aug 2026). iOS delivers each language as its own On-Demand Resource (tag lang-<code>); Play Asset Delivery caps an app at 50 asset packs, so at 200+ languages Android cannot carry one pack per language. Languages are GROUPED (script first, region to subdivide the large scripts) into stable, reserved on-demand packs. A reader downloads only their group. This map is the authority the Android build reads to emit one asset pack per non-empty group, and the plugin reads at runtime to resolve a language code to the pack that holds it.",
+ "note": "RULING settled (the author, 30 Aug 2026): grouped packs, not one-pack-per-language and not one-giant-languages-pack. Pack names are STABLE — never rename a pack once shipped (a rename is a full re-download for every existing user); add languages into existing groups, and add new groups only for a script/region the map does not yet cover. `en` is the source, inlined in the base module, and is NEVER a pack. Verification stays PER-LANGUAGE against www/lang-manifest.json (§14) — a group pack merely bundles several lang-<code>.json files. Session 45 (8 Sep 2026): the 63 languages added since 30 Aug placed into the existing groups by script (assign_rule.by_script); no group renamed, no new group needed (ethiopic stays empty until an Ethiopic-script language joins the roster). Session 50 (23 Sep 2026): reconciled to the 105-edition roster — 232 non-rostered codes (the old 200+ NLLB/MADLAD superset) pruned from the groups, and the six Sept-18 Claude-beta editions the roster had gained but this map never placed added by region: fj/mi/sm/tpi -> latin-oceania (now non-empty), lg/rn -> latin-africa. Android had not shipped since Session 44, so the map had drifted; lang_groups.py check and ship_android step 3 were failing until this pass. No group renamed.",
+ "cap": {
+  "maxPacksPerApp": 50,
+  "maxOnDemandPackBytes": 536870912,
+  "maxTotalAssetBytes": 2147483648,
+  "note": "Google Play Asset Delivery limits (verified 30 Aug 2026). The corpus is its own on-demand pack besides these language groups; count it against the 50."
+ },
+ "base": [
+  "en"
+ ],
+ "packPrefix": "langgroup-",
+ "groups": {
+  "latin-euro-west": {
+   "script": "Latin",
+   "region": "Western Europe",
+   "langs": [
+    "es",
+    "fr",
+    "it",
+    "pt",
+    "ca",
+    "nl",
+    "de",
+    "cy",
+    "eo",
+    "eu",
+    "ga",
+    "gl",
+    "la",
+    "lb",
+    "mt"
+   ]
+  },
+  "latin-euro-north": {
+   "script": "Latin",
+   "region": "Northern Europe",
+   "langs": [
+    "sv",
+    "da",
+    "nb",
+    "fi",
+    "is"
+   ]
+  },
+  "latin-euro-central": {
+   "script": "Latin",
+   "region": "Central/Eastern Europe",
+   "langs": [
+    "cs",
+    "sk",
+    "pl",
+    "hu",
+    "sl",
+    "hr",
+    "ro",
+    "sq",
+    "bs"
+   ]
+  },
+  "latin-baltic": {
+   "script": "Latin",
+   "region": "Baltic",
+   "langs": [
+    "et",
+    "lv",
+    "lt"
+   ]
+  },
+  "latin-turkic": {
+   "script": "Latin",
+   "region": "Turkic",
+   "langs": [
+    "tr",
+    "az",
+    "uz",
+    "tk"
+   ]
+  },
+  "latin-africa": {
+   "script": "Latin",
+   "region": "Sub-Saharan Africa",
+   "langs": [
+    "af",
+    "ha",
+    "ig",
+    "mg",
+    "rw",
+    "so",
+    "sw",
+    "xh",
+    "yo",
+    "zu",
+    "lg",
+    "rn"
+   ]
+  },
+  "latin-sea": {
+   "script": "Latin",
+   "region": "Southeast Asia",
+   "langs": [
+    "id",
+    "ms",
+    "fil",
+    "ceb",
+    "vi",
+    "tet",
+    "jv",
+    "su"
+   ]
+  },
+  "latin-americas": {
+   "script": "Latin",
+   "region": "Americas",
+   "langs": [
+    "es-419",
+    "pt-BR",
+    "ht"
+   ]
+  },
+  "cyrillic": {
+   "script": "Cyrillic",
+   "region": "Eastern Europe / Central Asia",
+   "langs": [
+    "ru",
+    "bg",
+    "mk",
+    "sr",
+    "uk",
+    "kk",
+    "ky",
+    "tg",
+    "mn",
+    "be"
+   ]
+  },
+  "greek": {
+   "script": "Greek",
+   "region": "Southeast Europe",
+   "langs": [
+    "el"
+   ]
+  },
+  "cjk": {
+   "script": "CJK",
+   "region": "East Asia",
+   "langs": [
+    "ja",
+    "zh",
+    "zh-Hant",
+    "ko"
+   ]
+  },
+  "arabic": {
+   "script": "Arabic",
+   "region": "West/Central Asia",
+   "langs": [
+    "ar",
+    "fa",
+    "ur",
+    "ckb",
+    "ug",
+    "ps"
+   ]
+  },
+  "hebrew": {
+   "script": "Hebrew",
+   "region": "West Asia",
+   "langs": [
+    "he"
+   ]
+  },
+  "indic-devanagari": {
+   "script": "Devanagari",
+   "region": "South Asia (North)",
+   "langs": [
+    "hi",
+    "mr",
+    "ne"
+   ]
+  },
+  "indic-bengali": {
+   "script": "Bengali-Assamese",
+   "region": "South Asia (East)",
+   "langs": [
+    "bn"
+   ]
+  },
+  "indic-dravidian": {
+   "script": "Dravidian (Tamil/Telugu/Kannada/Malayalam)",
+   "region": "South Asia (South)",
+   "langs": [
+    "ta",
+    "te",
+    "kn",
+    "ml"
+   ]
+  },
+  "indic-other": {
+   "script": "Gujarati/Gurmukhi/Odia/Sinhala",
+   "region": "South Asia (Other)",
+   "langs": [
+    "gu",
+    "pa",
+    "or",
+    "si"
+   ]
+  },
+  "sea-tai-thai": {
+   "script": "Thai/Lao",
+   "region": "Mainland Southeast Asia",
+   "langs": [
+    "th",
+    "lo"
+   ]
+  },
+  "sea-mon-khmer": {
+   "script": "Khmer/Burmese",
+   "region": "Mainland Southeast Asia",
+   "langs": [
+    "km",
+    "my"
+   ]
+  },
+  "caucasus": {
+   "script": "Armenian/Georgian",
+   "region": "Caucasus",
+   "langs": [
+    "ka",
+    "hy"
+   ]
+  },
+  "ethiopic": {
+   "script": "Ge'ez",
+   "region": "Horn of Africa",
+   "langs": [
+    "am"
+   ]
+  },
+  "tibetan": {
+   "script": "Tibetan",
+   "region": "Inner Asia / Himalaya",
+   "langs": [
+    "bo"
+   ]
+  },
+  "latin-oceania": {
+   "script": "Latin",
+   "region": "Oceania",
+   "langs": [
+    "fj",
+    "mi",
+    "sm",
+    "tpi"
+   ]
+  },
+  "latin-other": {
+   "script": "Latin",
+   "region": "Other / unassigned",
+   "langs": []
+  },
+  "other-scripts": {
+   "script": "Minority scripts (Tibetan, Cherokee, Canadian syllabics, Thaana, Syriac, Tifinagh, …)",
+   "region": "Various",
+   "langs": []
+  }
+ },
+ "assign_rule": {
+  "note": "How a NEW language is placed, so additions rarely need a new group. The map's `langs` lists are authoritative; this is the rule that fills them. tools/lang_groups.py enforces that every roster language (except `base`) lands in exactly one group.",
+  "by_script": {
+   "Latin": "subdivide by region: latin-euro-west | latin-euro-north | latin-euro-central | latin-baltic | latin-turkic | latin-africa | latin-sea | latin-americas",
+   "Cyrillic": "cyrillic (split to cyrillic-2 only if the group nears the per-pack byte cap)",
+   "Greek": "greek",
+   "Han/Kana/Hangul": "cjk",
+   "Arabic": "arabic (fa, ur, ps, ckb ride here — Arabic script, not their region)",
+   "Hebrew": "hebrew",
+   "Devanagari": "indic-devanagari",
+   "Bengali-Assamese": "indic-bengali",
+   "Tamil/Telugu/Kannada/Malayalam": "indic-dravidian",
+   "Gujarati/Gurmukhi/Odia/Sinhala": "indic-other",
+   "Thai/Lao": "sea-tai-thai",
+   "Khmer/Myanmar": "sea-mon-khmer",
+   "Armenian/Georgian": "caucasus",
+   "Ge'ez": "ethiopic",
+   "Tibetan": "tibetan"
+  },
+  "overflow": "If any group's total bytes approaches maxOnDemandPackBytes (512 MB), split it (e.g. cyrillic -> cyrillic, cyrillic-2) and reserve the new name; never let a group exceed the per-pack cap. Total group count + 1 (the corpus pack) must stay <= maxPacksPerApp (50)."
+ }
+}

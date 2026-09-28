@@ -45,6 +45,25 @@ class WeatherglassLangPlugin : Plugin() {
     private fun sha256(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
+    // Play Asset Delivery caps an app at 50 on-demand packs, so at 105 languages we cannot ship one
+    // pack per language. Languages are GROUPED (script first, region to subdivide) into stable packs
+    // (www/lang-groups.json — the twin of 1History's map). Resolve a code to the pack that carries it.
+    // Group ids are hyphenated (latin-euro-west); the built pack (ship_android.py) is the same with
+    // underscores (langgroup_latin_euro_west) — an Android split name allows no hyphens. Same rule here.
+    private fun groupPackFor(code: String): String? {
+        val raw = readAsset("lang-groups.json") ?: return null
+        val root = JSONObject(raw)
+        val groups = root.optJSONObject("groups") ?: return null
+        val prefix = root.optString("packPrefix", "langgroup-")
+        val it = groups.keys()
+        while (it.hasNext()) {
+            val gid = it.next()
+            val langs = groups.getJSONObject(gid).optJSONArray("langs") ?: continue
+            for (i in 0 until langs.length()) if (langs.getString(i) == code) return (prefix + gid).replace('-', '_')
+        }
+        return null
+    }
+
     // Resolve an on-demand pack to its assets directory, fetching it if it is not present yet.
     private fun withPack(pack: String, onReady: (File) -> Unit, onFail: (String) -> Unit) {
         assetPacks.getPackLocation(pack)?.assetsPath()?.let { onReady(File(it)); return }
@@ -80,7 +99,8 @@ class WeatherglassLangPlugin : Plugin() {
             ?.let { JSONObject(it).optJSONObject("langs")?.optJSONObject(code)?.optString("sha256") }
             ?.takeIf { it.isNotEmpty() }
             ?: return call.reject("no digest for $code in lang-manifest.json")
-        val pack = "lang_" + code.replace('-', '_')        // Android split names: no hyphens
+        val pack = groupPackFor(code)
+            ?: return call.reject("no asset pack holds language '$code' (lang-groups.json)")
         withPack(pack,
             onReady = { dir ->
                 val f = File(dir, "lang-$code.json")
