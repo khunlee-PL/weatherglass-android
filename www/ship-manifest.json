@@ -1,0 +1,53 @@
+{
+ "app": "weatherglass-android",
+ "packs": [
+  "lang_th",
+  "lang_fil"
+ ],
+ "files": {
+  "www/index.html": {
+   "sha256": "de92f60e3a864dfc144205f884caebddaa1b11d97e16ad446d2e44f9a9574fc3",
+   "bytes": 3587661
+  },
+  "www/lang-manifest.json": {
+   "sha256": "df8df6a5afe693980f56e522ea75090944474390cc8fe317a64329ccd23288da",
+   "bytes": 457
+  },
+  "www/manifest.webmanifest": {
+   "sha256": "84d9a32b0195e75635e40ec6c0679b2dd49783c4f769d2736de6557b844c20b4",
+   "bytes": 766
+  },
+  "www/sw.js": {
+   "sha256": "3749e11a1f3c6e1854278512acee71803f9693519246b3ee8123c0d6eadebb09",
+   "bytes": 1430
+  },
+  "www/icon/icon-192.png": {
+   "sha256": "2e5b9d44408b42a9465c775faacc81663f5e18a74f76a32a0841519ce6500ec2",
+   "bytes": 10335
+  },
+  "www/icon/icon-512-maskable.png": {
+   "sha256": "4de37e1cf436787b01eee84fc1111a23b955906de5e64db61c6f4bae7ae01b86",
+   "bytes": 34070
+  },
+  "www/icon/icon-512.png": {
+   "sha256": "8f4eb6b23ffaf36e9e2b64eda103543337ffc5ae4d44b3d3855bf023f6341f11",
+   "bytes": 40782
+  },
+  "lang_th/build.gradle": {
+   "sha256": "b2c382ad6ebba247a468537aac8f4a156c154e26664ac044d0c92230848a20c0",
+   "bytes": 206
+  },
+  "lang_th/src/main/assets/lang-th.json": {
+   "sha256": "1aa9f8e13ffe70f5fd4bb3a2ff247b8595ca91a4ad2245cf85540e1705909e3b",
+   "bytes": 72876
+  },
+  "lang_fil/build.gradle": {
+   "sha256": "c79d641dcf519f6c644f8383b65ebb93ca89a393d1af49712fb7b10882303e5f",
+   "bytes": 207
+  },
+  "lang_fil/src/main/assets/lang-fil.json": {
+   "sha256": "04ea725b980e45df302517689aa196c58aba33df5446ec87a88be72434faa44f",
+   "bytes": 11907
+  }
+ }
+}

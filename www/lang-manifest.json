@@ -1,0 +1,17 @@
+{
+ "app": "weatherglass-langs",
+ "v": 1,
+ "note": "Per-language On-Demand Resource digests. Native loadLang verifies lang-<code>.json against these before trusting it.",
+ "langs": {
+  "th": {
+   "sha256": "1aa9f8e13ffe70f5fd4bb3a2ff247b8595ca91a4ad2245cf85540e1705909e3b",
+   "bytes": 72876,
+   "tag": "lang-th"
+  },
+  "fil": {
+   "sha256": "04ea725b980e45df302517689aa196c58aba33df5446ec87a88be72434faa44f",
+   "bytes": 11907,
+   "tag": "lang-fil"
+  }
+ }
+}

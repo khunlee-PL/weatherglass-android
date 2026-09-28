@@ -1,0 +1,11 @@
+{
+  "appId": "live.weatherglass.app",
+  "appName": "Weatherglass",
+  "webDir": "www",
+  "backgroundColor": "#0A0C16",
+  "android": { "backgroundColor": "#0A0C16", "allowMixedContent": false },
+  "plugins": {
+    "CapacitorHttp": { "enabled": true },
+    "Geolocation": {}
+  }
+}

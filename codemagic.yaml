@@ -1,0 +1,212 @@
+# Weatherglass — Android build & Google Play pipeline for Codemagic.
+#
+# The Android twin of weatherglass-ios/codemagic.yaml, modelled on 1history-android. The base .aab
+# carries the app with ENGLISH inline; every other language is an on-demand Play Asset Delivery pack
+# (module lang_<code>, the Play twin of the iOS ODR tag) fetched by native/WeatherglassLangPlugin.kt
+# when the reader picks it, sha-verified against www/lang-manifest.json.
+#
+# One-time setup (browser only — see README.md):
+#   1. Codemagic > Teams > Code signing identities > Android keystores: upload the upload keystore
+#      (weatherglass-upload.jks, generated 28 Sep 2026) under the reference name "weatherglass_upload".
+#      Play App Signing holds the real app-signing key; this keystore only signs uploads.
+#   2. (later) Codemagic > Integrations > Google Play: a Play service-account JSON with release rights,
+#      then restore the `publishing.google_play` block below. Until then the .aab is a build ARTIFACT:
+#      download it and upload by hand to Play Console → Testing → Internal testing.
+#   3. Start builds from the Codemagic UI (branch main) or push a tag v*.
+
+workflows:
+  android-release:
+    name: Weatherglass Android Release
+    instance_type: mac_mini_m2        # the free plan's instance builds Android too
+    max_build_duration: 45
+
+    environment:
+      android_signing:
+        - weatherglass_upload
+      vars:
+        PACKAGE_NAME: "live.weatherglass.app"
+        # THE MARKETING VERSION — versionName, Play's "app version". Kept in step with the iOS
+        # MARKETING_VERSION so both stores tell one version story. versionCode = Codemagic build number.
+        MARKETING_VERSION: "1.0.0"
+      node: 20
+      java: 17
+
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $CM_BUILD_DIR/node_modules
+        - $HOME/.gradle/caches
+
+    scripts:
+      - name: Guard — the shipping artifacts must be present and coherent
+        script: |
+          test -s www/index.html || { echo "www/index.html missing — run tools/ship_android.py in the corpus repo and commit"; exit 1; }
+          grep -q 'LANG_PACKS_ODR = true' www/index.html || { echo "www/index.html is not the LEAN build — re-run tools/ship_android.py"; exit 1; }
+          test -s www/lang-manifest.json || { echo "www/lang-manifest.json missing"; exit 1; }
+          test -s www/ship-manifest.json || { echo "www/ship-manifest.json missing"; exit 1; }
+          python3 - <<'MANIFEST'
+          import hashlib, json, os, sys
+          man = json.load(open("www/ship-manifest.json"))
+          bad = []
+          for rel, want in man["files"].items():
+              try: got = hashlib.sha256(open(rel, "rb").read()).hexdigest()
+              except FileNotFoundError: bad.append(f"{rel}: MISSING"); continue
+              if got != want["sha256"]: bad.append(f"{rel}: sha {got[:16]} != manifest {want['sha256'][:16]} — from a DIFFERENT ship run")
+          langs = json.load(open("www/lang-manifest.json"))["langs"]
+          for code, meta in langs.items():
+              p = f"lang_{code.replace('-', '_')}/src/main/assets/lang-{code}.json"
+              if not os.path.isfile(p): bad.append(f"{p}: MISSING (manifest names it)"); continue
+              if hashlib.sha256(open(p, "rb").read()).hexdigest() != meta["sha256"]: bad.append(f"{p}: digest mismatch")
+          if bad:
+              print("SHIP SET INCOHERENT:"); [print("  " + b) for b in bad]; sys.exit(1)
+          print(f"ship set coherent: {len(man['files'])} files; packs = {', '.join(man['packs'])}")
+          MANIFEST
+
+      - name: Install npm dependencies
+        script: npm ci || npm install
+
+      - name: Add & sync the Android platform
+        script: |
+          npx cap add android 2>/dev/null || true
+          npx cap sync android
+
+      - name: Generate app icon & splash
+        script: |
+          npx capacitor-assets generate --android || true
+
+      - name: Wire the native plugin, MainActivity and the asset packs into the Gradle project
+        script: |
+          PKGDIR=android/app/src/main/java/live/weatherglass/app
+          mkdir -p "$PKGDIR"
+          cp native/WeatherglassLangPlugin.kt "$PKGDIR/"
+          # Capacitor's generated MainActivity lives at the appId's package path; replace it with one
+          # that REGISTERS the local plugin (never auto-discovered) and locks phones to portrait.
+          cat > "$PKGDIR/MainActivity.java" <<'JAVA'
+          package live.weatherglass.app;
+
+          import android.os.Bundle;
+          import android.content.pm.ActivityInfo;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(WeatherglassLangPlugin.class);   // language packs (Play Asset Delivery)
+                  // Phones portrait-only (the iOS twin locks UISupportedInterfaceOrientations);
+                  // tablets (sw >= 700dp) landscape, matching the app's two-pane layout.
+                  if (getResources().getConfiguration().smallestScreenWidthDp >= 700) {
+                      setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                  } else {
+                      setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                  }
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          JAVA
+          grep -q "registerPlugin(WeatherglassLangPlugin.class)" "$PKGDIR/MainActivity.java" || { echo "plugin not registered"; exit 1; }
+          # the asset-pack modules assembled by ship_android.py — named by the ship manifest
+          PACKS=$(python3 -c "import json;print(' '.join(json.load(open('www/ship-manifest.json'))['packs']))")
+          for pack in $PACKS; do
+            [ -d "$pack" ] || { echo "pack module '$pack' named by the manifest is missing"; exit 1; }
+            mkdir -p "android/$pack"; cp -R "$pack/." "android/$pack/"
+          done
+          [ -n "$(tail -c1 android/settings.gradle)" ] && echo >> android/settings.gradle
+          for p in $PACKS; do grep -q "':$p'" android/settings.gradle || echo "include ':$p'" >> android/settings.gradle; done
+          python3 - "$PACKS" <<'WIRE'
+          import re, sys
+          packs = sys.argv[1].split()
+          gp = "android/app/build.gradle"; s = open(gp).read()
+          ap = "assetPacks = [" + ", ".join('":%s"' % p for p in packs) + "]"
+          if "assetPacks" not in s: s = re.sub(r"(android\s*\{)", r"\1\n    " + ap, s, count=1)
+          if "com.google.android.play:asset-delivery" not in s:
+              s = re.sub(r"(dependencies\s*\{)", r"\1\n    implementation 'com.google.android.play:asset-delivery:2.2.2'\n", s, count=1)
+          s = re.sub(r"targetSdkVersion\s+\d+", "targetSdkVersion 36", s)
+          s = re.sub(r"compileSdkVersion\s+\d+", "compileSdkVersion 36", s)
+          # Kotlin: the Capacitor template is Java-only; without the plugin the .kt is silently not compiled
+          if "kotlin-android" not in s:
+              s = re.sub(r"(apply plugin:\s*'com\.android\.application')", r"\1\napply plugin: 'kotlin-android'", s, count=1)
+          if "kotlinOptions" not in s:
+              s = re.sub(r"(android\s*\{)", r"\1\n    kotlinOptions { jvmTarget = '17' }", s, count=1)
+          open(gp, "w").write(s)
+          rg = "android/build.gradle"; r = open(rg).read()
+          if "kotlin-gradle-plugin" not in r:
+              r = re.sub(r"(classpath\s+['\"]com\.android\.tools\.build:gradle[^\n]*)",
+                         r"\1\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'", r, count=1)
+              open(rg, "w").write(r)
+          vg = "android/variables.gradle"
+          try:
+              v = open(vg).read()
+              v = re.sub(r"targetSdkVersion\s*=\s*\d+", "targetSdkVersion = 36", v)
+              v = re.sub(r"compileSdkVersion\s*=\s*\d+", "compileSdkVersion = 36", v)
+              open(vg, "w").write(v)
+          except FileNotFoundError: pass
+          print("wired assetPacks + asset-delivery + kotlin + SDK 36:", ", ".join(packs))
+          WIRE
+
+      - name: Manifest — location permissions (the Geolocation plugin does not add them) and no backup of web data
+        script: |
+          MF=android/app/src/main/AndroidManifest.xml
+          python3 - "$MF" <<'PERM'
+          import re, sys
+          p = sys.argv[1]; s = open(p).read()
+          for perm in ("android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"):
+              if perm not in s:
+                  s = re.sub(r"(<manifest\b[^>]*>)", r'\1\n    <uses-permission android:name="%s" />' % perm, s, count=1)
+          open(p, "w").write(s)
+          print("location permissions declared")
+          PERM
+          grep -q "ACCESS_FINE_LOCATION" "$MF" || { echo "location permission missing after patch"; exit 1; }
+
+      - name: Ensure Android SDK 36 is installed
+        script: |
+          SDKMGR=""
+          for c in \
+            "$ANDROID_SDK_ROOT"/cmdline-tools/latest/bin/sdkmanager \
+            "$ANDROID_HOME"/cmdline-tools/latest/bin/sdkmanager \
+            "$HOME"/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager \
+            "$ANDROID_SDK_ROOT"/cmdline-tools/*/bin/sdkmanager \
+            "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager \
+            "$(command -v sdkmanager 2>/dev/null)"; do
+            [ -x "$c" ] && SDKMGR="$c" && break
+          done
+          [ -n "$SDKMGR" ] || { echo "sdkmanager not found"; exit 1; }
+          SDKROOT="$(cd "$(dirname "$SDKMGR")/../../.." && pwd)"
+          yes | "$SDKMGR" --licenses >/dev/null 2>&1 || true
+          "$SDKMGR" "platforms;android-36" "build-tools;36.0.0" || echo "sdkmanager returned non-zero — verifying on disk"
+          [ -d "$SDKROOT/platforms/android-36" ] && [ -d "$SDKROOT/build-tools/36.0.0" ] || { echo "Android SDK 36 missing under $SDKROOT"; exit 1; }
+          [ -d android ] && echo "sdk.dir=$SDKROOT" > android/local.properties || true
+
+      - name: Set version + applicationId
+        script: |
+          cd android
+          sed -i.bak "s/versionName \"[^\"]*\"/versionName \"$MARKETING_VERSION\"/" app/build.gradle
+          sed -i.bak "s/versionCode [0-9]*/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+          sed -i.bak "s/applicationId \"[^\"]*\"/applicationId \"$PACKAGE_NAME\"/" app/build.gradle
+          grep -E "versionName|versionCode|applicationId" app/build.gradle
+
+      - name: Build the signed App Bundle (.aab)
+        script: |
+          cd android
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=$CM_KEYSTORE_PATH \
+            -Pandroid.injected.signing.store.password=$CM_KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$CM_KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$CM_KEY_PASSWORD
+
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+
+    # AAB-ONLY FIRST BUILD: auto-publish stays off until a Play service account exists. Download the
+    # .aab artifact and upload it by hand to Play Console → Internal testing. To restore auto-publish
+    # add a `google_play` env group with GCLOUD_SERVICE_ACCOUNT_CREDENTIALS and uncomment:
+    # publishing:
+    #   google_play:
+    #     credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    #     track: internal
+    #     submit_as_draft: true

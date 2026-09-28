@@ -1,0 +1,18 @@
+{
+  "name": "Weatherglass — weather on one globe",
+  "short_name": "Weatherglass",
+  "description": "An offline climate atlas that gains a live pulse on request: conditions, forecasts and official warnings on the same rotating globe or Equal Earth map.",
+  "lang": "en",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A0C16",
+  "theme_color": "#0A0C16",
+  "categories": ["weather", "education", "travel"],
+  "icons": [
+    { "src": "icon/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
