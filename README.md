@@ -53,3 +53,14 @@ git add -A weatherglass-android && git commit
   auto-discovered) and locks phones to portrait / tablets to landscape.
 - Wires `assetPacks`, `asset-delivery`, Kotlin, compile/targetSdk 36; declares location permissions.
 - `gradlew bundleRelease` signed with the upload keystore → `.aab` artifact.
+
+## Status (2026-09-28)
+
+- Codemagic app added (workflow `android-release`); keystore `weatherglass_upload` uploaded. Build #2 → `app-release.aab`
+  (versionCode 2, versionName 1.0.0, targetSdk 36, 4.66 MB).
+- Play Console app **Weatherglass** (`live.weatherglass.app`) created: store listing (icon, feature graphic, 8 phone
+  screenshots), category Weather, contact hello@weatherglass.live / https://weatherglass.live, privacy policy,
+  Ads = none, Sign-in = unrestricted, content rating (IARC, all ages), target audience 18+, data safety
+  (location: collected+shared, ephemeral, optional, app functionality), government/financial/health = none.
+- Internal testing release 1.0.0 (2) published; tester lists Friends + Internal attached.
+- Next: closed test (12 testers / 14 days) before applying for production.

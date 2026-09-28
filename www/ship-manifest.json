@@ -6,11 +6,11 @@
  ],
  "files": {
   "www/index.html": {
-   "sha256": "a44c48d046fafc7f52d8acd44541f49b980ea47ae3e73d53042aa9ddf46ed184",
-   "bytes": 3588154
+   "sha256": "d96e9b1439631bc09029bb41434c00bb038ff3bedbb449b1549ea0f95578d026",
+   "bytes": 3594276
   },
   "www/lang-manifest.json": {
-   "sha256": "0c2a8c0b4a763e2818dfd4931253228437931e9f83611d68bad6176ef2357eb4",
+   "sha256": "40404693173e4031f114d7a4af0045c529a16b70fae81ef74c57bef2c085fde0",
    "bytes": 457
   },
   "www/manifest.webmanifest": {
@@ -38,16 +38,16 @@
    "bytes": 206
   },
   "lang_th/src/main/assets/lang-th.json": {
-   "sha256": "bece5cdaa9b6c03e35b8c3bac05dd48dad212b62bf4806b8907b91afb60b61ac",
-   "bytes": 72913
+   "sha256": "fce309677716e65419997060c6ec02ab5fad4b3024fe0dbd9c1b8b0d3d86f962",
+   "bytes": 73576
   },
   "lang_fil/build.gradle": {
    "sha256": "c79d641dcf519f6c644f8383b65ebb93ca89a393d1af49712fb7b10882303e5f",
    "bytes": 207
   },
   "lang_fil/src/main/assets/lang-fil.json": {
-   "sha256": "0062a4ae857769bc98fd50411480f419f0ac79afe8d64c9a5663a2f46504dee1",
-   "bytes": 11929
+   "sha256": "c85365aa3289d7c1b11f6f7de0159656d513cb5446a1883379082a8cc7c17183",
+   "bytes": 12343
   }
  }
 }
