@@ -27,8 +27,8 @@
  ],
  "files": {
   "www/index.html": {
-   "sha256": "343cb5a53ad5b33f146b55f64a37ec994d27c8ff2489794ed9c16f308b62b098",
-   "bytes": 4183407
+   "sha256": "97b470c6c3900ce21a8910a8c903913bd592a09e221a3d6bf77172f10cb1a8d8",
+   "bytes": 3880111
   },
   "www/lang-groups.json": {
    "sha256": "125e8889f27d25a2f3356e57446601ac527f6d1cab1b96d2b91d6413e2e7166f",
