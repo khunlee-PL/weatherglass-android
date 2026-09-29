@@ -269,8 +269,8 @@
    "tag": "lang-ceb"
   },
   "fil": {
-   "sha256": "ceb429884f12c2bab8ad78a90ff96c6ad7d808fcfdbefd46e1908f530901238d",
-   "bytes": 14047,
+   "sha256": "a095ed3c3be51774ce9f83885b4c9e6dc157b74d94aad14eb973c860ab23e588",
+   "bytes": 14094,
    "tag": "lang-fil"
   },
   "tet": {
@@ -284,8 +284,8 @@
    "tag": "lang-vi"
   },
   "th": {
-   "sha256": "a982f8180d7dad1ad4ed6871c5464515c456d4781d28b8ad67bda53984ee31c6",
-   "bytes": 76235,
+   "sha256": "92d2b63174dcebf3c9a2fadedd82ae7b67f20d6d08f09a4abd23408048a07f16",
+   "bytes": 76305,
    "tag": "lang-th"
   },
   "lo": {

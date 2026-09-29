@@ -27,15 +27,15 @@
  ],
  "files": {
   "www/index.html": {
-   "sha256": "6402cd4563fa16a0827a7e52696dc2db0f0a74f08aa6b340c44e2037d31c10e2",
-   "bytes": 4237715
+   "sha256": "0a6bea5427bb9deab3e9e1d9bcd3da265c194561287271378db7cb81f567511b",
+   "bytes": 4193440
   },
   "www/lang-groups.json": {
    "sha256": "125e8889f27d25a2f3356e57446601ac527f6d1cab1b96d2b91d6413e2e7166f",
    "bytes": 7208
   },
   "www/lang-manifest.json": {
-   "sha256": "65f22d61efde01c701508ddb10713146efdf241f5027ab9e36447454fe559820",
+   "sha256": "64da494683b046ff51ddb70046e9d75ac9578c782de8d62493d8d59cda64f44a",
    "bytes": 14394
   },
   "www/manifest.webmanifest": {
@@ -283,8 +283,8 @@
    "bytes": 14538
   },
   "langgroup_latin_sea/src/main/assets/lang-fil.json": {
-   "sha256": "ceb429884f12c2bab8ad78a90ff96c6ad7d808fcfdbefd46e1908f530901238d",
-   "bytes": 14047
+   "sha256": "a095ed3c3be51774ce9f83885b4c9e6dc157b74d94aad14eb973c860ab23e588",
+   "bytes": 14094
   },
   "langgroup_latin_sea/src/main/assets/lang-id.json": {
    "sha256": "697e82bf2d2eddb1fc32ab8c66a0a224d05fea65156627522808ce3c42eab8e8",
@@ -507,8 +507,8 @@
    "bytes": 24937
   },
   "langgroup_sea_tai_thai/src/main/assets/lang-th.json": {
-   "sha256": "a982f8180d7dad1ad4ed6871c5464515c456d4781d28b8ad67bda53984ee31c6",
-   "bytes": 76235
+   "sha256": "92d2b63174dcebf3c9a2fadedd82ae7b67f20d6d08f09a4abd23408048a07f16",
+   "bytes": 76305
   },
   "langgroup_sea_mon_khmer/build.gradle": {
    "sha256": "8087b69561c9b4509e35745a5a34977aee73e709b189d7bb8f4da5ed37f3b2d6",
