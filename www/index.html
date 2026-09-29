@@ -305,6 +305,16 @@
   .ovcol .ovbtn{width:auto}                 /* every button sized to its own label, never a fixed width */
   /* bottom-right column (News, Settings) sits a little above the layer row */
   #ov-br{position:absolute;right:calc(12px + env(safe-area-inset-right,0px));bottom:62px;z-index:16;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  /* top-centre dataset title: what the globe is currently showing */
+  #ov-title{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:15;
+    max-width:min(46vw,420px);pointer-events:none;text-align:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 16px;
+    box-shadow:0 3px 14px rgba(0,0,0,.34);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
+    font:600 13px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #ov-title[hidden]{display:none}
+  #ov-title .ovt-src{color:var(--muted);font-weight:400}
+  @media (max-width:600px){ #ov-title{top:calc(10px + env(safe-area-inset-top,0px));max-width:52vw;font-size:12px;padding:6px 12px} }
 
   .ovmenu .lang-row{display:block;width:100%;text-align:left;font:600 13px/1.2 -apple-system,system-ui,sans-serif;color:var(--ink);
     background:transparent;border:0;border-radius:8px;padding:9px 10px;cursor:pointer}
@@ -513,6 +523,8 @@
 <div id="wrap">
   <div id="stage">
   <canvas id="c"></canvas>
+  <!-- top-centre: which dataset the globe is currently showing (between logo and Globe/Map) -->
+  <div id="ov-title" class="ui" hidden></div>
   <!-- top-left: logo + button cluster (two rows) -->
   <div id="ov-tl" class="ui">
     <div class="brand" aria-label="Weatherglass — where the sky takes shape"><svg xmlns="http://www.w3.org/2000/svg" viewBox="130 65 528 117" role="img" aria-labelledby="t d">
@@ -1746,6 +1758,16 @@ function setLayerMsg(m){
   const attrib = !m || /as of|©/.test(m);            // attribution-style text belongs in the layer row
   if(el) el.textContent = attrib ? m : "";
   if(!attrib) showToast(m); else showToast("");
+  updateOvTitle();
+}
+// Top-centre banner naming the dataset now on the globe (between the logo and the Globe/Map toggle).
+function updateOvTitle(){
+  const el=document.getElementById("ov-title"); if(!el) return;
+  const key={temp:"l_temp",precip:"l_precip",cloud:"l_cloud",wind:"l_wind",isobar:"l_pressure"}[liveLayer];
+  if(!key){ el.hidden=true; el.textContent=""; return; }          // "Off" → nothing shown
+  const src = (typeof rasterLayer!=="undefined" && rasterLayer) ? "OpenWeatherMap" : "Open-Meteo";
+  el.innerHTML = escapeHtml(T(key)) + ' <span class="ovt-src">· '+escapeHtml(src)+'</span>';
+  el.hidden=false;
 }
 function omForecastSrc(){ const S=(window.WXLIVE&&window.WXLIVE.sources)||[]; return S.filter(s=>/open-meteo\.com/.test(s.url)&&!/archive/.test(s.url))[0]; }
 function gridCoords(){ const p=[]; for(let la=GLAT0;la<=GLAT1;la+=GSTEP) for(let lo=-180;lo<180;lo+=GSTEP) p.push([la,lo]); return p; }
@@ -2205,6 +2227,7 @@ function applyLiveLayer(val){
   liveLayer=val; pendingLayer=null; stopAnim(); rasterLayer=null;
   if(typeof savePrefs==="function") savePrefs();
   document.querySelectorAll("#layerbar button").forEach(b=>b.classList.toggle("on",b.dataset.l===val));
+  updateOvTitle();
   const at=document.getElementById("owm-attrib"); if(at)at.hidden=true;
   const ia=document.getElementById("iso-attrib"); if(ia)ia.hidden=(val!=="isobar");
   document.body.classList.remove("settings-open");
@@ -2333,6 +2356,7 @@ function applyLang(code, rerender){
     if(!homes.length && typeof openHome==="function") openHome();
     if(window.WXNEWS_ACTIVE){ const t=document.getElementById("wx-news-out"); if(t) t.textContent=T("news_bar",{n:newsItems.length,t:newsClock}); }
     if(typeof updateOwmToast==="function") updateOwmToast();
+    if(typeof updateOvTitle==="function") updateOvTitle();
   }
 }
 // Region-grouped language list — the 1History picker model. Used by both the first-run picker (#langpick-list)
@@ -2413,7 +2437,7 @@ function armLayerLoad(){ if(!pendingLayer) return; const L=pendingLayer; pending
 
 loadHomes(); applyPrefs();
 if(langReady(uiLang)) applyLang(uiLang); else { const want=uiLang; uiLang="en"; applyLang("en"); loadLangPack(want).then(()=>applyLang(want,true)).catch(()=>{}); }
-renderPanel(); render();
+renderPanel(); render(); updateOvTitle();   // show the restored layer's name at once
 showFirstRun();          // first launch and every update: language picker → disclaimer, blocks the app until accepted
 durableRestore().then(changed=>{ if(!changed) return;          // native copy had homes/prefs the web side lost
   loadHomes(); applyPrefs(); applyLang(uiLang); renderPanel();
