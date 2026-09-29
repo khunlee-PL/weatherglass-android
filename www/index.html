@@ -2099,7 +2099,16 @@ function bakeBitmap(f, cfg){
         const cv=band?Math.floor(v/band)*band+band/2:v, c=paletteRGB(cfg.stops,cv), i=(py*IW+px)*4;
         d[i]=c[0]|0; d[i+1]=c[1]|0; d[i+2]=c[2]|0; d[i+3]=cfg.alphaOf?(cfg.alphaOf(v)|0):255;
       } }
-    octx.putImageData(img,0,0); return off;
+    octx.putImageData(img,0,0);
+    if(cfg.band) return off;                         // pressure bands stay crisp (contour fill)
+    // The fetch grid is coarse (Open-Meteo's ~600 coord/min cap), so raw cells read as blobs. Blur the
+    // equirectangular field so the cells melt into one continuous gradient — a smooth field, not patches.
+    const sm=document.createElement("canvas"); sm.width=IW; sm.height=IH;
+    const sctx=sm.getContext("2d"); if(!sctx) return off;
+    sctx.filter="blur(14px)";
+    sctx.drawImage(off,-IW,0); sctx.drawImage(off,0,0); sctx.drawImage(off,IW,0);   // 3× tiled so the blur wraps at ±180 (no seam)
+    sctx.filter="none";
+    return sm;
   }catch(e){ return null; }
 }
 let isoFill=true, bmpCache={}, hdMode=false;   // isoFill toggles the pressure fill; hdMode uses OWM HD tiles when a key is present; bmpCache holds one bitmap per field layer
