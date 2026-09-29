@@ -893,8 +893,8 @@ function render(){
   // Natural Earth detail (public domain): rivers + lakes under the coast; state borders + urban when zoomed in.
   const km=kmAcross();
   if(opt.rivers){
-    if(GEO.rivers) for(const ln of GEO.rivers) drawPolyline(ln,"rgba(105,175,240,0.8)",1.0);
-    if(GEO.lakes)  for(const rg of GEO.lakes)  drawPolyline(rg,"rgba(95,180,240,0.92)",1.0);
+    if(GEO.rivers) for(const ln of GEO.rivers) drawPolyline(ln,"rgba(120,185,245,0.9)",1.4);
+    if(GEO.lakes)  for(const rg of GEO.lakes)  drawPolyline(rg,"rgba(110,190,245,0.95)",1.4);
   }
   ctx.save();                                     // fluorescent-blue wireframe, 1History's coast glow
   ctx.shadowColor="rgba(111,227,208,0.55)"; ctx.shadowBlur=6;
@@ -903,7 +903,7 @@ function render(){
   for(const ring of tier.rings) drawPolyline(ring,coastCol,1.0);
   ctx.restore();
   if(opt.borders && GEO.borders) for(const ring of GEO.borders) drawPolyline(ring,"rgba(150,175,205,0.5)",0.7);  // 1History border style, after the coast
-  if(opt.admin1 && GEO.admin1 && km<11000) for(const ln of GEO.admin1) drawPolyline(ln,"rgba(150,175,205,0.38)",0.6);  // state/province lines: continental zoom and closer
+  if(opt.admin1 && GEO.admin1) for(const ln of GEO.admin1) drawPolyline(ln,"rgba(150,175,205,0.30)",0.6);  // state/province lines (faint at world view, clearer zoomed in)
   if(opt.urban && GEO.urban && km<4200) for(const rg of GEO.urban) drawPolyline(rg,"rgba(232,176,75,0.5)",0.7);        // city footprints, closer in
   if(opt.stations){
     for(const s of GEO.stations){
@@ -1731,7 +1731,7 @@ function useGridCache(){
     }
   }catch(e){} return false;
 }
-const GSTEP=12, GLAT0=-56, GLAT1=76;   // ~330 grid points — smaller so one pass fetches fully under Open-Meteo's ~600/min limit
+const GSTEP=10, GLAT0=-56, GLAT1=76;   // ~500 grid points — denser than before but still under Open-Meteo's ~600 coord/min cap
 // Layer/location messages: the short "live · as of …" attribution stays in the layer row; everything
 // else (unavailable, denied, fetching…, key problems) is a toast in the middle of the screen that the
 // next tap anywhere dismisses (8 s fallback).
@@ -2044,7 +2044,7 @@ const FIELD = {
             owm:{lo:0,hi:10,stops:[[0,130,210,255],[2,45,145,240],[4,45,200,120],[6,235,220,60],[8,240,140,45],[10,225,40,45]]} },
   cloud:  { get:p=>p.c,  lo:0, hi:100, unit:"%", label:"Cloud cover", warpAlpha:0.85,
             stops:[[0,200,230,190],[15,255,255,255],[35,130,215,235],[55,60,150,225],[78,65,80,185],[100,40,40,110]],  // thin mint → white → blue → indigo overcast
-            alphaOf:v=> v<=8?0: Math.min(200, 40+v*1.9),    // thin veils translucent, overcast denser & distinct
+            alphaOf:v=> v<=4?0: Math.min(205, v*2.2),       // smooth ramp from clear -> overcast (no hard edge = less blobby)
             owm:{lo:0,hi:100,stops:[[0,200,230,190],[15,255,255,255],[35,130,215,235],[55,60,150,225],[78,65,80,185],[100,40,40,110]]} },
   wind:   { get:p=>p.ws, lo:0, hi:120, unit:"km/h", label:"Wind speed", warpAlpha:0.6,
             stops:[[0,60,180,120],[15,120,200,90],[30,235,216,92],[50,240,150,52],[75,226,72,52],[120,150,25,85]],
